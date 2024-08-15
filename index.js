@@ -51,8 +51,18 @@ async function run() {
       const menuCollection = db.collection("menu");
 
       app.post('/menu', async (req, res) => {
-        const result= await menuCollection.find().toArray()
-        res.send(result)
+        const page = parseInt(req.query.page) || 1
+        const limit = parseInt(req.query.limit) || 10;
+        const startIndex = (page - 1) * limit;
+
+        const result= await menuCollection.find().skip(startIndex).limit(limit).toArray()
+        const totalItems  = await menuCollection.countDocuments()
+        res.send({
+          items: result,
+          currentPage: page,
+          totalPages: Math.ceil(totalItems / limit),
+          totalItems
+        })
       })
   
   
