@@ -47,7 +47,13 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-     
+      const db = client.db("jobTask2");
+      const menuCollection = db.collection("menu");
+
+      app.post('/menu', async (req, res) => {
+        const result= await menuCollection.find().toArray()
+        res.send(result)
+      })
   
   
       await client.connect();
