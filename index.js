@@ -64,6 +64,24 @@ async function run() {
           totalItems
         })
       })
+
+      // get data by search 
+      app.post('/search', async (req, res) => {
+        const { name } = req.body;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const startIndex = (page - 1) * limit;
+      
+        const result = await menuCollection.find({ productName: { $regex: name, $options: 'i' } }).skip(startIndex).limit(limit).toArray();
+        
+        const totalItems = await menuCollection.countDocuments({ productName: { $regex: name, $options: 'i' } });
+        res.send({
+          items: result,
+          currentPage: page,
+          totalPages: Math.ceil(totalItems / limit),
+          totalItems
+        });
+      })
   
   
       await client.connect();
