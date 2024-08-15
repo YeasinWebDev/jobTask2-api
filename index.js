@@ -44,52 +44,72 @@ const client = new MongoClient(uri, {
   },
 });
 
-
 async function run() {
-    try {
-      const db = client.db("jobTask2");
-      const menuCollection = db.collection("menu");
+  try {
+    const db = client.db("jobTask2");
+    const menuCollection = db.collection("menu");
 
-      app.post('/menu', async (req, res) => {
-        const page = parseInt(req.query.page) || 1
-        const limit = parseInt(req.query.limit) || 10;
-        const startIndex = (page - 1) * limit;
+    app.post("/menu", async (req, res) => {
+      const { category, brandName, minPrice, maxPrice } = req.body;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const startIndex = (page - 1) * limit;
 
-        const result= await menuCollection.find().skip(startIndex).limit(limit).toArray()
-        const totalItems  = await menuCollection.countDocuments()
-        res.send({
-          items: result,
-          currentPage: page,
-          totalPages: Math.ceil(totalItems / limit),
-          totalItems
-        })
-      })
+      const filter = {};
+      if (category) filter.category = category;
+      if (brandName) filter.brandName = brandName;
+      if (minPrice || maxPrice) {
+        filter.price = {};
+        if (minPrice) filter.price.$gte = minPrice;
+        if (maxPrice) filter.price.$lte = maxPrice;
+      }
 
-      // get data by search 
-      app.post('/search', async (req, res) => {
-        const { name } = req.body;
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const startIndex = (page - 1) * limit;
+      const result = await menuCollection
+        .find(filter)
+        .skip(startIndex)
+        .limit(limit)
+        .toArray();
+
+      const totalItems = await menuCollection.countDocuments(filter);
       
-        const result = await menuCollection.find({ productName: { $regex: name, $options: 'i' } }).skip(startIndex).limit(limit).toArray();
-        
-        const totalItems = await menuCollection.countDocuments({ productName: { $regex: name, $options: 'i' } });
-        res.send({
-          items: result,
-          currentPage: page,
-          totalPages: Math.ceil(totalItems / limit),
-          totalItems
-        });
-      })
-  
-  
-      await client.connect();
-      // Send a ping to confirm a successful connection
-      await client.db("admin").command({ ping: 1 });
-    } finally {
-      // Ensures that the client will close when you finish/error
-      // await client.close();
-    }
+      res.send({
+        items: result,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+        totalItems,
+      });
+    });
+
+    // get data by search
+    app.post("/search", async (req, res) => {
+      const { name } = req.body;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const startIndex = (page - 1) * limit;
+
+      const result = await menuCollection
+        .find({ productName: { $regex: name, $options: "i" } })
+        .skip(startIndex)
+        .limit(limit)
+        .toArray();
+
+      const totalItems = await menuCollection.countDocuments({
+        productName: { $regex: name, $options: "i" },
+      });
+      res.send({
+        items: result,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+        totalItems,
+      });
+    });
+
+    await client.connect();
+    // Send a ping to confirm a successful connection
+    await client.db("admin").command({ ping: 1 });
+  } finally {
+    // Ensures that the client will close when you finish/error
+    // await client.close();
   }
-  run().catch(console.dir);
+}
+run().catch(console.dir);
