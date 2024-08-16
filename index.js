@@ -50,22 +50,31 @@ async function run() {
     const menuCollection = db.collection("menu");
 
     app.post("/menu", async (req, res) => {
-      const { category, brandName, minPrice, maxPrice } = req.body;
+      const { category, brandName, minPrice, maxPrice,sortOption  } = req.body;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const startIndex = (page - 1) * limit;
 
       const filter = {};
+      let sort = {};
+
       if (category) filter.category = category;
       if (brandName) filter.brandName = brandName;
+
       if (minPrice || maxPrice) {
         filter.price = {};
         if (minPrice) filter.price.$gte = minPrice;
         if (maxPrice) filter.price.$lte = maxPrice;
       }
 
+      // for sorting
+      if (sortOption === "priceAsc") sort.price = 1;
+      if (sortOption === "priceDesc") sort.price = -1;
+      if (sortOption === "dateDesc") sort.creationDateTime = -1;
+
       const result = await menuCollection
         .find(filter)
+        .sort(sort)
         .skip(startIndex)
         .limit(limit)
         .toArray();
@@ -82,13 +91,21 @@ async function run() {
 
     // get data by search
     app.post("/search", async (req, res) => {
-      const { name } = req.body;
+      const { name,sortOption  } = req.body;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
       const startIndex = (page - 1) * limit;
 
+      // for sorting
+      let sort = {};
+
+      if (sortOption === "priceAsc") sort.price = 1;
+      if (sortOption === "priceDesc") sort.price = -1;
+      if (sortOption === "dateDesc") sort.creationDateTime = -1;
+
       const result = await menuCollection
         .find({ productName: { $regex: name, $options: "i" } })
+        .sort(sort)
         .skip(startIndex)
         .limit(limit)
         .toArray();
